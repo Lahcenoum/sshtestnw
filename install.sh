@@ -10,7 +10,7 @@
 set -e
 
 # --- إعدادات أساسية ---
-GIT_REPO_URL="https://github.com/Lahcenoum/sshtestbot.git" # <--- غيّر هذا الرابط إذا كان المستودع مختلفًا
+GIT_REPO_URL="https://github.com/Lahcenoum/sshtestnw.git" # <--- غيّر هذا الرابط إذا كان المستودع مختلفًا
 PROJECT_DIR="/home/ssh_bot"
 SSH_CONNECTION_LIMIT=2
 
