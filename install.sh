@@ -1,20 +1,25 @@
 #!/bin/bash
-# Final Version: Focuses on the modular bot structure (using config.json)
-# and integrates automatic DB backups to Telegram.
+# Simplified Interactive Installer: Asks only for essential, variable info.
+# Static info like channel IDs are pre-configured.
 
 # ========================================================================
-#   سكريبت التثبيت للبوت بالهيكلية الجديدة (يعتمد على config.json)
+#   سكريبت التثبيت المبسط (يطلب التوكن والدومين فقط)
 # ========================================================================
 
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
 # --- إعدادات أساسية ---
-GIT_REPO_URL="https://github.com/Lahcenoum/sshtestnw.git" # <--- غيّر هذا الرابط إذا كان المستودع مختلفًا
+GIT_REPO_URL="https://github.com/Lahcenoum/sshtestnw.git" # <--- رابط المستودع الخاص بك
 PROJECT_DIR="/home/ssh_bot"
-SSH_CONNECTION_LIMIT=2
 
-# --- نهاية قسم الإعدادات ---
+# --- معلومات ثابتة للمشروع (تعدل هنا إذا لزم الأمر) ---
+ADMIN_USER_ID="5344028088"
+ADMIN_CONTACT="@YourAdminUsername"
+REQ_CHANNEL_LINK="https://t.me/CLOUDVIP"
+REQ_CHANNEL_ID="-1001932589296"
+REQ_GROUP_LINK="https://t.me/dgtliA"
+REQ_GROUP_ID="-1002218671728"
 
 # --- دوال الألوان ---
 red() { echo -e "\e[31m$*\e[0m"; }
@@ -28,37 +33,48 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 echo "=================================================="
-echo "    🔧 بدء تثبيت البوت بالهيكلية الجديدة"
+echo "      🔧 بدء تثبيت البوت (الإعداد المبسط)"
 echo "=================================================="
 
-# --- القسم الأول: تثبيت المتطلبات الأساسية ---
+# --- القسم الأول: جمع المعلومات الأساسية ---
 
-# الخطوة 0: حذف أي تثبيت قديم
-echo -e "\n[0/9] 🗑️ حذف أي تثبيت قديم..."
+echo -e "\n[+] يرجى إدخال المعلومات الأساسية التالية:\n"
+
+read -p "  - أدخل توكن البوت (Bot Token): " BOT_TOKEN
+read -p "  - أدخل عنوان IP أو نطاق السيرفر (Server IP/Domain): " SERVER_IP
+read -p "  - أدخل معرف قناة النسخ الاحتياطي (Backup Channel ID): " BACKUP_CHANNEL_ID
+
+# التحقق من أن المدخلات ليست فارغة
+if [ -z "$BOT_TOKEN" ] || [ -z "$SERVER_IP" ] || [ -z "$BACKUP_CHANNEL_ID" ]; then
+    red "❌ جميع الحقول إلزامية. يرجى إعادة تشغيل السكربت."
+    exit 1
+fi
+
+echo
+green "[✔] تم جمع المعلومات بنجاح. بدء التثبيت..."
+sleep 2
+
+
+# --- القسم الثاني: التثبيت الفعلي ---
+
+# الخطوة 1: حذف أي تثبيت قديم
+echo -e "\n[1/7] 🗑️ حذف أي تثبيت قديم..."
 systemctl stop ssh_bot.service >/dev/null 2>&1 || true
 systemctl disable ssh_bot.service >/dev/null 2>&1 || true
 rm -f /etc/systemd/system/ssh_bot.service
 rm -rf "$PROJECT_DIR"
 
-# 1. تحديث النظام وتثبيت المتطلبات
-echo -e "\n[1/9] 📦 تحديث النظام وتثبيت المتطلبات..."
-apt-get update
-apt-get install -y git python3-venv python3-pip sudo curl cron jq
+# الخطوة 2: تحديث وتثبيت المتطلبات
+echo -e "\n[2/7] 📦 تحديث النظام وتثبيت المتطلبات..."
+apt-get update >/dev/null 2>&1
+apt-get install -y git python3-venv python3-pip sudo curl cron >/dev/null 2>&1
 
-# 2. استنساخ المشروع
-echo -e "\n[2/9] 📥 استنساخ المشروع من GitHub..."
+# الخطوة 3: استنساخ المشروع وإعداد الملفات
+echo -e "\n[3/7] 📥 استنساخ المشروع وإعداد الملفات..."
 git clone "$GIT_REPO_URL" "$PROJECT_DIR"
 cd "$PROJECT_DIR" || exit 1
 
-# --- القسم الثاني: إعداد ملف config.json ---
-
-echo -e "\n[3/9] 📝 إعداد ملف 'config.json'..."
-
-read -p "  - أدخل توكن البوت (Bot Token): " BOT_TOKEN
-read -p "  - أدخل معرف الأدمن الرقمي (Admin User ID): " ADMIN_USER_ID
-read -p "  - أدخل عنوان IP أو نطاق السيرفر (Server IP/Domain): " SERVER_IP
-
-# إنشاء ملف config.json باستخدام cat و EOL
+# إنشاء ملف config.json باستخدام المعلومات التي تم جمعها والمعلومات الثابتة
 cat > "$PROJECT_DIR/config.json" << EOL
 {
   "telegram_bot_token": "${BOT_TOKEN}",
@@ -66,7 +82,6 @@ cat > "$PROJECT_DIR/config.json" << EOL
   "database_file": "ssh_bot_users.db",
   "ssh_script_path": "/usr/local/bin/create_ssh_user.sh",
   "telegram_stars_price": 1050,
-  
   "paypal_settings": {
     "enabled": false,
     "mode": "sandbox",
@@ -75,104 +90,65 @@ cat > "$PROJECT_DIR/config.json" << EOL
     "price": "2.40",
     "currency": "USD"
   },
-
   "required_channels": {
-    "channel_id": -1001932589296,
-    "group_id": -1002218671728,
-    "channel_link": "https://t.me/CLOUDVIP",
-    "group_link": "https://t.me/dgtliA"
+    "channel_id": ${REQ_CHANNEL_ID},
+    "group_id": ${REQ_GROUP_ID},
+    "channel_link": "${REQ_CHANNEL_LINK}",
+    "group_link": "${REQ_GROUP_LINK}"
   },
-  
-  "points_system": {
-    "cost_per_account": 2,
-    "daily_login_bonus": 1,
-    "initial": 2,
-    "join_bonus": 0,
-    "referral_bonus": 2
-  },
-
-  "expiry_days": {
-    "free": 1,
-    "paid": 30
-  },
-
+  "points_system": { "cost_per_account": 2, "daily_login_bonus": 1, "initial": 2, "join_bonus": 0, "referral_bonus": 2 },
+  "expiry_days": { "free": 1, "paid": 30 },
   "default_connection_settings": {
     "hostname": "${SERVER_IP}",
     "ws_ports": "80, 8880, 8888, 2053",
     "ssl_port": "443",
     "udpcustom_port": "7300",
-    "admin_contact": "@YourAdminUsername",
+    "admin_contact": "${ADMIN_CONTACT}",
     "payload": "GET / HTTP/1.1[crlf]Host: ${SERVER_IP}[crlf]Upgrade: websocket[crlf][crlf]"
   }
 }
 EOL
+green "  - ✅ تم إنشاء 'config.json' بنجاح."
 
-green "  - ✅ تم إنشاء وتعبئة ملف 'config.json' بنجاح."
-
-# --- القسم الثالث: إعداد السكربتات والخدمات ---
-
-# 4. إعداد سكربتات SSH
-echo -e "\n[4/9] 👤 إعداد سكربتات SSH..."
+# نقل سكربتات SSH
 if [ -f "create_ssh_user.sh" ]; then
     mv "create_ssh_user.sh" "/usr/local/bin/"
     chmod +x "/usr/local/bin/create_ssh_user.sh"
-    green "  - ✅ تم إعداد سكربت إنشاء المستخدمين."
-else
-    yellow "  - ⚠️ تحذير: لم يتم العثور على 'create_ssh_user.sh'."
 fi
 
-# ... (يمكن إضافة سكربتات الحذف والمراقبة هنا بنفس الطريقة إذا كانت موجودة في المستودع) ...
-
-# 5. إعداد النسخ الاحتياطي التلقائي
-echo -e "\n[5/9] 🗄️ إعداد النسخ الاحتياطي التلقائي..."
-read -p "  - أدخل معرف القناة (Channel ID) لإرسال النسخ الاحتياطية إليها (يبدأ بـ -100): " CHANNEL_ID
-if [[ ! "$CHANNEL_ID" =~ ^-100[0-9]+$ ]]; then red "❌ المعرف غير صالح." exit 1; fi
-
+# الخطوة 4: إعداد النسخ الاحتياطي
+echo -e "\n[4/7] 🗄️ إعداد النسخ الاحتياطي التلقائي..."
 cat > /usr/local/bin/backup_bot.sh << EOL
 #!/bin/bash
-BOT_TOKEN="${BOT_TOKEN}"
-CHANNEL_ID="${CHANNEL_ID}"
 DB_PATH="${PROJECT_DIR}/ssh_bot_users.db"
-CAPTION="نسخة احتياطية جديدة لقاعدة البيانات - \$(date)"
-
+CAPTION="نسخة احتياطية لقاعدة البيانات - \$(date)"
 if [ ! -f "\$DB_PATH" ]; then exit 1; fi
-
 BACKUP_FILE="/tmp/db_backup_\$(date +%F_%H-%M-%S).db"
 cp "\$DB_PATH" "\$BACKUP_FILE"
-
-curl -s -F "chat_id=\${CHANNEL_ID}" -F "document=@\${BACKUP_FILE}" -F "caption=\${CAPTION}" "https://api.telegram.org/bot\${BOT_TOKEN}/sendDocument" > /dev/null
-
+curl -s -F "chat_id=${BACKUP_CHANNEL_ID}" -F "document=@\${BACKUP_FILE}" -F "caption=\${CAPTION}" "https://api.telegram.org/bot${BOT_TOKEN}/sendDocument" > /dev/null
 rm "\$BACKUP_FILE"
 EOL
 
 chmod +x /usr/local/bin/backup_bot.sh
-# إضافة مهمة cron للعمل كل 6 ساعات
 { crontab -l 2>/dev/null | grep -v -F "/usr/local/bin/backup_bot.sh"; echo "0 */6 * * * /usr/local/bin/backup_bot.sh"; } | crontab -
 green "  - ✅ تم إعداد مهمة النسخ الاحتياطي كل 6 ساعات."
 
-# 6. إعداد بيئة بايثون
-echo -e "\n[6/9] 🐍 إعداد البيئة الافتراضية وتثبيت المكتبات..."
+# الخطوة 5: إعداد بيئة بايثون
+echo -e "\n[5/7] 🐍 إعداد البيئة الافتراضية وتثبيت المكتبات..."
 python3 -m venv venv
 (
     source venv/bin/activate
-    pip install --upgrade pip
-    # تحقق من وجود ملف requirements.txt
-    if [ -f "requirements.txt" ]; then
-        pip install -r requirements.txt
-    else
-        # تثبيت المكتبات الأساسية إذا لم يوجد الملف
-        pip install python-telegram-bot paypalrestsdk
-    fi
-    green "  - ✅ تم تثبيت المكتبات بنجاح."
+    pip install --upgrade pip >/dev/null 2>&1
+    if [ -f "requirements.txt" ]; then pip install -r requirements.txt; else pip install python-telegram-bot paypalrestsdk; fi
 )
+green "  - ✅ تم تثبيت المكتبات بنجاح."
 
-# 7. إعداد وتشغيل الخدمة
-echo -e "\n[7/9] 🚀 إعداد وتشغيل الخدمة..."
+# الخطوة 6: إعداد وتشغيل الخدمة
+echo -e "\n[6/7] 🚀 إعداد وتشغيل الخدمة..."
 cat > /etc/systemd/system/ssh_bot.service << EOL
 [Unit]
-Description=Telegram SSH Bot Service (Modular)
+Description=Telegram SSH Bot Service
 After=network.target
-
 [Service]
 User=root
 Group=root
@@ -180,20 +156,16 @@ WorkingDirectory=${PROJECT_DIR}
 ExecStart=${PROJECT_DIR}/venv/bin/python ${PROJECT_DIR}/main_bot.py
 Restart=always
 RestartSec=5
-
 [Install]
 WantedBy=multi-user.target
 EOL
-green "  - ✅ تم إنشاء ملف الخدمة."
 
-# 8. تشغيل الخدمات
-echo -e "\n[8/9] ⚙️ تفعيل وإعادة تشغيل الخدمات..."
 systemctl daemon-reload
 systemctl enable ssh_bot.service >/dev/null 2>&1
 systemctl restart ssh_bot.service
 
-# 9. نهاية التثبيت
-echo -e "\n[9/9] 🎉 تم التثبيت بنجاح!"
+# الخطوة 7: نهاية التثبيت
+echo -e "\n[7/7] 🎉 تم التثبيت بنجاح!"
 echo "=================================================="
 green "🎉 اكتمل التثبيت بنجاح!"
 echo "--------------------------------------------------"
