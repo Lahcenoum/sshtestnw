@@ -1,0 +1,45 @@
+{
+  "telegram_bot_token": "YOUR_TELEGRAM_BOT_TOKEN",
+  "admin_user_id": 5344028088,
+  "database_file": "ssh_bot_users.db",
+  "ssh_script_path": "/usr/local/bin/create_ssh_user.sh",
+  "telegram_stars_price": 1050,
+  
+  "paypal_settings": {
+    "enabled": false,
+    "mode": "sandbox",
+    "client_id": "YOUR_PAYPAL_CLIENT_ID",
+    "client_secret": "YOUR_PAYPAL_CLIENT_SECRET",
+    "price": "2.40",
+    "currency": "USD"
+  },
+
+  "required_channels": {
+    "channel_id": -1001932589296,
+    "group_id": -1002218671728,
+    "channel_link": "https://t.me/CLOUDVIP",
+    "group_link": "https://t.me/dgtliA"
+  },
+  
+  "points_system": {
+    "cost_per_account": 2,
+    "daily_login_bonus": 1,
+    "initial": 2,
+    "join_bonus": 0,
+    "referral_bonus": 2
+  },
+
+  "expiry_days": {
+    "free": 2,
+    "paid": 30
+  },
+
+  "default_connection_settings": {
+    "hostname": "your.hostname.com",
+    "ws_ports": "80, 8880, 8888, 2053",
+    "ssl_port": "443",
+    "udpcustom_port": "7300",
+    "admin_contact": "@YourAdminUsername",
+    "payload": "GET / HTTP/1.1[crlf]Host: your.hostname.com[crlf]Upgrade: websocket[crlf][crlf]"
+  }
+}
